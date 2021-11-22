@@ -89,7 +89,9 @@ class LossAndDerivatives:
         # YOUR CODE HERE
         Y_estimated = X.dot(w)
         error = (Y_estimated - Y)
-        gradient = (2.0/ (X.shape[0])) * np.dot(X.T, error)
+        target_dimentionality = len(w.shape)
+        second_dimension = w.shape[1] if target_dimentionality > 1 else 1 
+        gradient = (2.0/ (X.shape[0] * second_dimension)) * np.dot(X.T, error)
         return gradient
 
     @staticmethod
@@ -111,7 +113,9 @@ class LossAndDerivatives:
         # YOUR CODE HERE
         Y_estimated = X.dot(w)
         error = np.sign(Y_estimated - Y)
-        gradient = (1.0/ (X.shape[0])) * np.dot(X.T, error)
+        target_dimentionality = len(w.shape)
+        second_dimension = w.shape[1] if target_dimentionality > 1 else 1 
+        gradient = (1.0/ (X.shape[0] * second_dimension)) * np.dot(X.T, error)
         return gradient
 
     @staticmethod
