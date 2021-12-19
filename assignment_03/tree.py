@@ -16,11 +16,12 @@ def entropy(y):
     float
         Entropy of the provided subset
     """
-    EPS = 0.0005
 
     # YOUR CODE HERE
-    
-    return 0.
+    EPS = 0.0005
+    h = -np.sum(y*np.log2(y+EPS))
+    return h
+
     
 def gini(y):
     """
@@ -38,8 +39,14 @@ def gini(y):
     """
 
     # YOUR CODE HERE
-    
-    return 0.
+    p_sum = np.sum(y**2)
+    gini = 1 - p_sum
+    # deominator = y.sum()
+    # probability_sum = 0
+    # for p in y:
+    #   probability_sum = probability_sum  +  (p / deominator )**2 
+    #   gini = 1 - probability_sum
+    return gini    
     
 def variance(y):
     """
@@ -57,8 +64,9 @@ def variance(y):
     """
     
     # YOUR CODE HERE
-    
-    return 0.
+    R = len(y)
+    var = 1/R * sum((y - np.mean(y))**2)
+    return var
 
 def mad_median(y):
     """
@@ -77,8 +85,9 @@ def mad_median(y):
     """
 
     # YOUR CODE HERE
-    
-    return 0.
+    R = len(y)
+    mad_med = 1/R * sum(np.abs(y - np.median(y)))
+    return mad_med
 
 
 def one_hot_encode(n_classes, y):
@@ -155,6 +164,19 @@ class DecisionTree(BaseEstimator):
         """
 
         # YOUR CODE HERE
+        X_left, X_right = list(), list()
+        for x in X_subset:
+          if x[feature_index] < threshold:
+            X_left.append(x)
+          else:
+            X_right.append(x)
+
+        y_left, y_right = list(), list()
+        for y in y_subset:
+          if y[feature_index] < threshold:
+            y_left.append(y)
+          else:
+            y_right.append(y)
         
         return (X_left, y_left), (X_right, y_right)
     
@@ -189,7 +211,13 @@ class DecisionTree(BaseEstimator):
         """
 
         # YOUR CODE HERE
-        
+        y_left, y_right = list(), list()
+        for y in y_subset:
+          if y[feature_index] < threshold:
+            y_left.append(y)
+          else:
+            y_right.append(y)
+            
         return y_left, y_right
 
     def choose_best_split(self, X_subset, y_subset):
@@ -215,6 +243,11 @@ class DecisionTree(BaseEstimator):
 
         """
         # YOUR CODE HERE
+        if self.criterion_name = 'gini':
+            pass
+        
+        if self.criterion_name = 'entropy':
+            pass
         return feature_index, threshold
     
     def make_tree(self, X_subset, y_subset):
@@ -305,3 +338,4 @@ class DecisionTree(BaseEstimator):
         # YOUR CODE HERE
         
         return y_predicted_probs
+
