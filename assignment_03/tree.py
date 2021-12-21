@@ -40,16 +40,16 @@ def gini(y):
     """
 
     # YOUR CODE HERE
-    
-    # probabilities = []
+    p = np.mean(y, axis=0)
+    gini = 1 - np.sum(p**2)
+    return gini
+
     # calculate the probability for for each unique label
+    # probabilities = []
     # for one_class in np.unique(y):
     #     proba = y[y == one_class].shape[0] / y.shape[0]
     #     probabilities.append(proba)
     # p = np.asarray(probabilities)
-    p = np.mean(y, axis=0)
-    gini = 1 - np.sum(p**2)
-    return gini    
     
 def variance(y):
     """
@@ -166,23 +166,23 @@ class DecisionTree(BaseEstimator):
             Part of the providev subset where selected feature x^j >= threshold
         """
         # YOUR CODE HERE
-        # value_of_feat = X_subset[:, feature_index]
-        # X_left, X_right = X_subset[value_of_feat < threshold, :], X_subset[value_of_feat >= threshold, :]
-        # y_left, y_right = y_subset[value_of_feat < threshold], y_subset[value_of_feat >= threshold]
+        value_of_feat = X_subset[:, feature_index]
+        X_left, X_right = X_subset[value_of_feat < threshold, :], X_subset[value_of_feat >= threshold, :]
+        y_left, y_right = y_subset[value_of_feat < threshold], y_subset[value_of_feat >= threshold]
         
-        X_left, X_right = list(), list()
-        for value_of_feat in X_subset:
-          if value_of_feat[:, feature_index] < threshold:
-            X_left.append(x)
-          else:
-            X_right.append(x)
+        # X_left, X_right = list(), list()
+        # for value_of_feat in X_subset:
+        #   if value_of_feat[:, feature_index] < threshold:
+        #     X_left.append(value_of_feat)
+        #   else:
+        #     X_right.append(value_of_feat)
 
-        y_left, y_right = list(), list()
-        for class_label in y_subset:
-          if class_label[:, feature_index] < threshold:
-            y_left.append(y)
-          else:
-            y_right.append(y)
+        # y_left, y_right = list(), list()
+        # for class_label in y_subset:
+        #   if class_label[:, feature_index] < threshold:
+        #     y_left.append(class_label)
+        #   else:
+        #     y_right.append(class_label)
         
         return (X_left, y_left), (X_right, y_right)
     
@@ -227,7 +227,7 @@ class DecisionTree(BaseEstimator):
         #   else:
         #     y_right.append(y)
             
-        # return y_left, y_right
+        return y_left, y_right
 
     def choose_best_split(self, X_subset, y_subset):
         """
@@ -316,7 +316,18 @@ class DecisionTree(BaseEstimator):
 
         # YOUR CODE HERE
         depth = 0
-        
+        if (depth < self.max_depth) and (self.number_of_features >= self.min_samples_split):
+          # Getting the best split
+          feature_index, threshold = self.choose_best_split(X_subset, y_subset)
+          (X_left, y_left), (X_right, y_right) = self.make_split(feature_index, threshold, X_subset, y_subset)
+
+          new_node = Node(feature_index, threshold)
+
+          new_node.right_child = self.make_tree(X_right, y_right)
+          self.max_depth += 1
+          new_node.left_child = self.make_tree(X_left, y_left)
+          self.max_depth += 1
+
         return new_node
         
     def fit(self, X, y):
@@ -341,6 +352,19 @@ class DecisionTree(BaseEstimator):
             y = one_hot_encode(self.n_classes, y)
 
         self.root = self.make_tree(X, y)
+    
+    @staticmethod
+    def current_node_info(root, X):
+        current_node = root
+        for feat_value in X:
+          while current_node.proba is None:
+            given_feature_value = feat_value[current_node.feature_index]
+            if given_feature_value > current_node.value:
+              current_node = current_node.right_child
+            else:
+              current_node = current_node.left_child
+        return current_node
+
 
     def predict(self, X):
         """
@@ -362,19 +386,7 @@ class DecisionTree(BaseEstimator):
         # YOUR CODE HERE
         n_objects = X.shape[0]
         y_predicted = np.zeros((n_objects, 1))
-
-        def current_node_info(X):
-          current_node = self.root
-          for feat_value in X:
-            while current_node.proba is None:
-              given_feature_value = feat_value[current_node.feature_index]
-              if given_feature_value > current_node.value:
-                current_node = current_node.right_child
-              else:
-                current_node = current_node.left_child
-          return current_node
-
-        current_node = current_node_info(X)
+        current_node = DecisionTree.current_node_info(self.root, X)
         if self.classification:
           np.append(y_predicted, current_node.feature_index)
         else:
@@ -403,7 +415,7 @@ class DecisionTree(BaseEstimator):
         # YOUR CODE HERE
         n_objects = X.shape[0]
         y_predicted_probs = np.zeros((n_objects, self.n_classes))
-        current_node = current_node_info(X)
+        current_node = DecisionTree.current_node_info(X)
         np.append(y_predicted_probs, current_node.proba)
         
         return y_predicted_probs
