@@ -286,14 +286,6 @@ class DecisionTree(BaseEstimator):
 
         return feature_index, best_threshold
     
-#         if self.criterion_name = 'gini':
-#             impurity = gini(y_subset)
-#             for feature_index in X_subset:
-#                 for value in y_subset[feature_index]:
-#                     threshold = value
-#                     impurity_new = gini(y_subset[feature_index])
-#                     if impurity_new < impurity:
-
     
     def make_tree(self, X_subset, y_subset):
         """
