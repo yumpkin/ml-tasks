@@ -316,7 +316,8 @@ class DecisionTree(BaseEstimator):
 
         # YOUR CODE HERE
         depth = 0
-        if (depth < self.max_depth) and (self.number_of_features >= self.min_samples_split):
+        n_features = X_subset.shape[0]
+        if (depth < self.max_depth) and (n_features >= self.min_samples_split):
           # Getting the best split
           feature_index, threshold = self.choose_best_split(X_subset, y_subset)
           (X_left, y_left), (X_right, y_right) = self.make_split(feature_index, threshold, X_subset, y_subset)
@@ -388,9 +389,9 @@ class DecisionTree(BaseEstimator):
         y_predicted = np.zeros((n_objects, 1))
         current_node = DecisionTree.current_node_info(self.root, X)
         if self.classification:
-          np.append(y_predicted, current_node.feature_index)
+          np.append(y_predicted, np.argmax(current_node.proba))
         else:
-          np.append(y_predicted, current_node.value)
+          np.append(y_predicted, current_node.proba)
 
         return np.asarray(y_predicted)
         
@@ -419,4 +420,3 @@ class DecisionTree(BaseEstimator):
         np.append(y_predicted_probs, current_node.proba)
         
         return y_predicted_probs
-
