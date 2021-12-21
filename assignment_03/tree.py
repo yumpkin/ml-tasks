@@ -19,7 +19,8 @@ def entropy(y):
 
     # YOUR CODE HERE
     EPS = 0.0005
-    h = -np.sum(y*np.log2(y+EPS))
+    y_mean = np.mean(y, axis=0)
+    h = -np.sum(y_mean * np.log2(y_mean + EPS))
     return h
 
     
@@ -39,13 +40,15 @@ def gini(y):
     """
 
     # YOUR CODE HERE
-    p_sum = np.sum(y**2)
-    gini = 1 - p_sum
-    # deominator = y.sum()
-    # probability_sum = 0
-    # for p in y:
-    #   probability_sum = probability_sum  +  (p / deominator )**2 
-    #   gini = 1 - probability_sum
+    
+    # probabilities = []
+    # calculate the probability for for each unique label
+    # for one_class in np.unique(y):
+    #     proba = y[y == one_class].shape[0] / y.shape[0]
+    #     probabilities.append(proba)
+    # p = np.asarray(probabilities)
+    p = np.mean(y, axis=0)
+    gini = 1 - np.sum(p**2)
     return gini    
     
 def variance(y):
@@ -162,18 +165,21 @@ class DecisionTree(BaseEstimator):
         (X_right, y_right) : tuple of np.arrays of same type as input X_subset and y_subset
             Part of the providev subset where selected feature x^j >= threshold
         """
-
         # YOUR CODE HERE
+        # value_of_feat = X_subset[:, feature_index]
+        # X_left, X_right = X_subset[value_of_feat < threshold, :], X_subset[value_of_feat >= threshold, :]
+        # y_left, y_right = y_subset[value_of_feat < threshold], y_subset[value_of_feat >= threshold]
+        
         X_left, X_right = list(), list()
-        for x in X_subset:
-          if x[feature_index] < threshold:
+        for value_of_feat in X_subset:
+          if value_of_feat[:, feature_index] < threshold:
             X_left.append(x)
           else:
             X_right.append(x)
 
         y_left, y_right = list(), list()
-        for y in y_subset:
-          if y[feature_index] < threshold:
+        for class_label in y_subset:
+          if class_label[:, feature_index] < threshold:
             y_left.append(y)
           else:
             y_right.append(y)
@@ -211,14 +217,17 @@ class DecisionTree(BaseEstimator):
         """
 
         # YOUR CODE HERE
-        y_left, y_right = list(), list()
-        for y in y_subset:
-          if y[feature_index] < threshold:
-            y_left.append(y)
-          else:
-            y_right.append(y)
+        value = X_subset[:, feature_index]
+        y_left, y_right = y_subset[value <= threshold], y_subset[value > threshold]
+        
+        # y_left, y_right = list(), list()
+        # for class_label in y_subset:
+        #   if class_label[:, feature_index] < threshold:
+        #     y_left.append(y)
+        #   else:
+        #     y_right.append(y)
             
-        return y_left, y_right
+        # return y_left, y_right
 
     def choose_best_split(self, X_subset, y_subset):
         """
@@ -243,12 +252,48 @@ class DecisionTree(BaseEstimator):
 
         """
         # YOUR CODE HERE
-        if self.criterion_name = 'gini':
-            pass
-        
-        if self.criterion_name = 'entropy':
-            pass
-        return feature_index, threshold
+        feature_index = None
+        best_threshold = None
+        optimal_split_fuctional = float('-inf')
+        number_of_features = X_subset.shape[1]
+        # for each column in X
+        for feat_index in range(number_of_features):
+            feat = np.unique(X_subset[:, feat_index])
+            # for each value in the feature column
+            for value in feat:
+                y_left, y_right = self.make_split_only_y(feat_index, value, X_subset, y_subset)
+                # discard those that have not make split
+                if y_right.shape[1] == 0 or y_left.shape[1] == 0:
+                    continue
+                    
+                # calculate impurity for the right and left nodes
+                impurityRight = self.criterion(y_right)
+                impurityLeft = self.criterion(y_left)
+
+                #just for more meaningful name while we iterate through nodes
+                dataset_current_node = number_of_features
+
+                left_subset = y_left.shape[1]
+                right_subset = y_right.shape[1]
+                
+                split_fuctional = (impurityLeft * left_subset / dataset_current_node)+(impurityRight * right_subset / dataset_current_node)
+                
+                # is this split_fuctional is the optimal one so fat?
+                if split_fuctional > optimal_split_fuctional:
+                    feature_index = feat_index
+                    best_threshold = value
+                    optimal_split_fuctional = split_fuctional
+
+        return feature_index, best_threshold
+    
+#         if self.criterion_name = 'gini':
+#             impurity = gini(y_subset)
+#             for feature_index in X_subset:
+#                 for value in y_subset[feature_index]:
+#                     threshold = value
+#                     impurity_new = gini(y_subset[feature_index])
+#                     if impurity_new < impurity:
+
     
     def make_tree(self, X_subset, y_subset):
         """
@@ -270,6 +315,7 @@ class DecisionTree(BaseEstimator):
         """
 
         # YOUR CODE HERE
+        depth = 0
         
         return new_node
         
@@ -295,7 +341,7 @@ class DecisionTree(BaseEstimator):
             y = one_hot_encode(self.n_classes, y)
 
         self.root = self.make_tree(X, y)
-    
+
     def predict(self, X):
         """
         Predict the target value or class label  the model from scratch using the provided data
@@ -314,8 +360,27 @@ class DecisionTree(BaseEstimator):
         """
 
         # YOUR CODE HERE
-        
-        return y_predicted
+        n_objects = X.shape[0]
+        y_predicted = np.zeros((n_objects, 1))
+
+        def current_node_info(X):
+          current_node = self.root
+          for feat_value in X:
+            while current_node.proba is None:
+              given_feature_value = feat_value[current_node.feature_index]
+              if given_feature_value > current_node.value:
+                current_node = current_node.right_child
+              else:
+                current_node = current_node.left_child
+          return current_node
+
+        current_node = current_node_info(X)
+        if self.classification:
+          np.append(y_predicted, current_node.feature_index)
+        else:
+          np.append(y_predicted, current_node.value)
+
+        return np.asarray(y_predicted)
         
     def predict_proba(self, X):
         """
@@ -336,6 +401,10 @@ class DecisionTree(BaseEstimator):
         assert self.classification, 'Available only for classification problem'
 
         # YOUR CODE HERE
+        n_objects = X.shape[0]
+        y_predicted_probs = np.zeros((n_objects, self.n_classes))
+        current_node = current_node_info(X)
+        np.append(y_predicted_probs, current_node.proba)
         
         return y_predicted_probs
 
