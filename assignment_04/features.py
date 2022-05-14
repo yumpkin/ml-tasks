@@ -1,9 +1,7 @@
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from sklearn.base import TransformerMixin
 from typing import List, Union
 import numpy as np
-from collections import Counter
-
 
 
 class BoW(TransformerMixin):
@@ -30,10 +28,10 @@ class BoW(TransformerMixin):
         # task: find up to self.k most frequent tokens in texts_train,
         # sort them by number of occurences (highest first)
         # store most frequent tokens in self.bow
-#         raise NotImplementedError
-        split_it = X.split()
-        Counters_found = Counter(split_it)
-        self.bow = Counters_found.most_common(k)
+
+        corpus_freq = Counter(' '.join(list(X)).split())
+        self.bow = [word for word, freq in corpus_freq.most_common(self.k)]
+
         # fit method must always return self
         return self
 
@@ -44,8 +42,9 @@ class BoW(TransformerMixin):
         :return bow_feature: feature vector, made by bag of words
         """
 
-        result = None
-        raise NotImplementedError
+
+        token_counts = Counter(text.split())
+        result = [(lambda: 0, lambda: token_counts[token])[token in token_counts.keys()]() for token in self.bow]
         return np.array(result, "float32")
 
     def transform(self, X: np.ndarray, y=None) -> np.ndarray:
@@ -84,7 +83,15 @@ class TfIdf(TransformerMixin):
         """
         :param X: array of texts to be trained on
         """
-        raise NotImplementedError
+        text = []
+        for words in list(X):
+          text += list(set(words.split()))
+
+        if self.k is not None:
+          top_words = [word for word, freq in Counter(text).most_common(self.k)]
+          token_frequency = {word : Counter(text)[word] for word in Counter(text) if word in top_words}
+
+        self.idf = {word : np.log(len(X) / token_frequency[word]) for word in token_frequency}
 
         # fit method must always return self
         return self
@@ -96,9 +103,12 @@ class TfIdf(TransformerMixin):
         :param text: text to be transformed
         :return tf_idf: tf-idf features
         """
+        
+        tf_dict = Counter(text.split())
+        if self.normalize:
+            tf_dict = {word : tf_dict[word] / len(tf_dict) for word in tf_dict}
 
-        result = None
-        raise NotImplementedError
+        result=[(lambda: 0, lambda: tf_dict[word] * self.idf[word])[word in tf_dict]() for word in self.idf]
         return np.array(result, "float32")
 
     def transform(self, X: np.ndarray, y=None) -> np.ndarray:
